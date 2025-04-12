@@ -29,6 +29,7 @@ services:
     ports:
       - "8090:8080"
     volumes:
+      - pb_data:/pb/pb_data
       - ./pocketbase/pb_migrations:/pb/pb_migrations
       - ./pocketbase/pb_hooks:/pb/pb_hooks
     environment:

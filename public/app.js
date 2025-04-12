@@ -1,4 +1,4 @@
-const pb = new PocketBase('http://127.0.0.1:8090')
+const pb = new PocketBase('https://devlikeme-pocketbase.liviogama.com')
 const COLLECTION_NAME = 'tech_categories'
 const categoriesContainer = document.getElementById('categoriesContainer')
 const currentYearSpan = document.getElementById('current-year')
@@ -112,17 +112,17 @@ const createCategoryCard = category => {
       event.preventDefault()
       event.stopPropagation()
     }
-    
+
     const techName = addTechInput.value.trim()
     if (techName) {
       // Check for duplicates
-      if (category.technologies && category.technologies.some(tech => 
+      if (category.technologies && category.technologies.some(tech =>
         tech.value.toLowerCase() === techName.toLowerCase())) {
         showError(`"${techName}" already exists in this category`)
         addTechInput.focus()
         return
       }
-      
+
       addTechnology(category.id, techName, addTechBtn, techList, category)
       addTechInput.value = ''
     } else {
@@ -153,59 +153,59 @@ const addTechnology = async (categoryId, techName, button, techList, category) =
     const originalContent = button.innerHTML
     button.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Adding'
     button.disabled = true
-    
-    // Create tech ID 
+
+    // Create tech ID
     const newTechId = generateTechId(category.title, techName)
-    
+
     // Optimistic UI update - add item to DOM immediately
     const techItem = document.createElement('li')
     techItem.className = 'tech-item optimistic'
     techItem.innerHTML = `<span><i class="fas fa-microchip"></i> ${techName}</span>`
-    
+
     // Remove empty message if it exists
     const emptyTech = techList.querySelector('.empty-tech')
     if (emptyTech) {
       techList.removeChild(emptyTech)
     }
-    
+
     techList.appendChild(techItem)
-    
+
     // Update the tech count in the UI
     const techCount = techList.closest('.category-card').querySelector('.tech-count')
     const currentCount = (category.technologies?.length || 0) + 1
     techCount.textContent = `${currentCount} technologies`
-    
+
     // Clone the technologies array and add the new one
     const technologies = [...(category.technologies || [])]
     technologies.push({
       id: newTechId,
       value: techName,
     })
-    
+
     // Update the local category object to keep it in sync
     category.technologies = technologies
-    
+
     // Update server in the background
     await pb.collection(COLLECTION_NAME).update(categoryId, {
       technologies,
     })
-    
+
     // Mark as successful
     techItem.classList.remove('optimistic')
-    
+
     // Reset button state
     button.innerHTML = originalContent
     button.disabled = false
   } catch (error) {
     console.error('Error adding technology:', error)
     showError('Failed to add technology')
-    
+
     // Find and remove the optimistic item
     const optimisticItem = techList.querySelector('.optimistic')
     if (optimisticItem) {
       techList.removeChild(optimisticItem)
     }
-    
+
     // If this made the list empty again, restore the empty message
     if (!techList.children.length) {
       const emptyItem = document.createElement('li')
@@ -213,11 +213,11 @@ const addTechnology = async (categoryId, techName, button, techList, category) =
       emptyItem.innerHTML = '<i class="fas fa-circle-info"></i> No technologies added yet'
       techList.appendChild(emptyItem)
     }
-    
+
     // Update the tech count back to original
     const techCount = techList.closest('.category-card').querySelector('.tech-count')
     techCount.textContent = `${category.technologies?.length || 0} technologies`
-    
+
     // Reset button state
     button.innerHTML = '<i class="fas fa-plus"></i> Add'
     button.disabled = false

@@ -4,7 +4,7 @@ import PocketBase from 'pocketbase'
 dotenv.config()
 
 const COLLECTION_NAME = 'tech_categories'
-const PB_URL = 'http://127.0.0.1:8090'
+const PB_URL = 'http://pocketbase:8080'
 
 const importTechCategories = async () => {
   console.log('Starting tech categories import...')

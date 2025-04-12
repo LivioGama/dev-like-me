@@ -1,11 +1,11 @@
-import { App } from '@slack/bolt'
-import { WebClient } from '@slack/web-api'
+import {App} from '@slack/bolt'
+import {WebClient} from '@slack/web-api'
 import dotenv from 'dotenv'
 import express from 'express'
 import path from 'path'
-import { setupActionHandlers } from './handlers/actions'
-import { setupCommandHandlers } from './handlers/commands'
-import { getAllUserPreferences, initDatabase } from './utils/database'
+import {setupActionHandlers} from './handlers/actions'
+import {setupCommandHandlers} from './handlers/commands'
+import {getAllUserPreferences,} from './utils/database'
 
 dotenv.config()
 
@@ -43,15 +43,9 @@ expressApp.use((req, res) => {
 
 const startApp = async () => {
   try {
-    await initDatabase()
-
-    // Get all user preferences from PocketBase
     const userPreferences = await getAllUserPreferences()
 
-    // Set up action handlers
     setupActionHandlers(app, userPreferences, client)
-
-    // Set up command handlers
     setupCommandHandlers(app, userPreferences, client)
 
     await app.start()
