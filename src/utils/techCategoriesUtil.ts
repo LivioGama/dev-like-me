@@ -1,28 +1,65 @@
-import { techCategories } from '../models/techCategories'
+import PocketBase from 'pocketbase'
 
-const getCategoryEmoji = (category: string): string => {
+const pb = new PocketBase(process.env.POCKETBASE_URL || 'http://127.0.0.1:8090')
+pb.autoCancellation(false)
+
+export const getCategoryEmoji = (category: string): string => {
   switch (category) {
-    case 'Frontend':
+    case 'AI Coding Tools':
+      return '🤖'
+    case 'Web Frontend':
       return '🖥️'
+    case 'Web Frontend Storage':
+      return '💾'
+    case 'Web Frontend UI Libraries':
+      return '🎨'
+    case 'Mobile':
+      return '📱'
     case 'Backend':
       return '⚙️'
+    case 'SaaS':
+      return '☁️'
     case 'Database':
       return '🗄️'
+    case 'Task Management':
+      return '📋'
+    case 'Git Hosting':
+      return '📂'
+    case 'Languages':
+      return '🔤'
     case 'DevOps':
       return '🚀'
     case 'Design':
-      return '🎨'
+      return '🎭'
     case 'QA':
       return '🧪'
+    case 'Architecture':
+      return '🏗️'
     default:
       return '💻'
   }
 }
 
-export const generateTechCategoryBlocks = (userSelections?: string[]) => {
+export const fetchTechCategories = async () => {
+  try {
+    const records = await pb.collection('tech_categories').getFullList()
+
+
+    return records.map(record => ({
+      title: record.title,
+      technologies: record.technologies || []
+    }))
+  } catch (error) {
+    console.error('Error fetching tech categories:', error)
+  }
+}
+
+export const generateTechCategoryBlocks = async (userSelections?: string[]) => {
   const blocks: any[] = []
 
-  techCategories.forEach(category => {
+  const categories = await fetchTechCategories()
+
+  categories.forEach(category => {
     const emoji = getCategoryEmoji(category.title)
 
     blocks.push({
@@ -33,11 +70,9 @@ export const generateTechCategoryBlocks = (userSelections?: string[]) => {
       },
     })
 
-    if (category.title !== 'Frontend') {
-      blocks.push({
-        type: 'divider',
-      })
-    }
+    blocks.push({
+      type: 'divider',
+    })
 
     blocks.push({
       type: 'actions',

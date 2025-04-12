@@ -1,7 +1,6 @@
 {
   "name": "dev-like-me",
   "version": "1.0.0",
-  "main": "index.js",
   "scripts": {
     "dev": "bun --watch src/app.ts",
     "start": "bun src/app.ts",

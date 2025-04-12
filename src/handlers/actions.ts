@@ -9,22 +9,22 @@ export const setupActionHandlers = (app: any, userPreferences: Record<string, st
     
     const userId = body.user.id
     
-    // Get current user preferences from PocketBase
-    const currentPrefs = userPreferences[userId] || await getUserPreferences(userId) || []
-    
-    // Convert to Set for easy manipulation
-    const userPrefsSet = new Set(currentPrefs)
-    
-    const tech = (action as any).value
-    
-    // Toggle selection
-    if (userPrefsSet.has(tech)) {
-      userPrefsSet.delete(tech)
-    } else {
-      userPrefsSet.add(tech)
-    }
-    
     try {
+      // Get current user preferences from PocketBase
+      const currentPrefs = userPreferences[userId] || await getUserPreferences(userId) || []
+      
+      // Convert to Set for easy manipulation
+      const userPrefsSet = new Set(currentPrefs)
+      
+      const tech = (action as any).value
+      
+      // Toggle selection
+      if (userPrefsSet.has(tech)) {
+        userPrefsSet.delete(tech)
+      } else {
+        userPrefsSet.add(tech)
+      }
+      
       // Convert Set back to array
       const updatedPrefs = Array.from(userPrefsSet)
       
@@ -35,7 +35,7 @@ export const setupActionHandlers = (app: any, userPreferences: Record<string, st
       userPreferences[userId] = updatedPrefs
       
       // Regenerate all blocks with updated selections
-      const updatedBlocks = generateTechCategoryBlocks(updatedPrefs)
+      const updatedBlocks = await generateTechCategoryBlocks(updatedPrefs)
       
       // Add header block to re-explain the command
       updatedBlocks.unshift(
@@ -63,7 +63,11 @@ export const setupActionHandlers = (app: any, userPreferences: Record<string, st
         text: 'Select your tech preferences'
       })
     } catch (error) {
-      console.error('Error updating message:', error)
+      console.error('Error updating preferences:', error)
+      await respond({
+        response_type: 'ephemeral',
+        text: 'Sorry, there was an error updating your preferences. Please try again later.'
+      })
     }
   })
 } 

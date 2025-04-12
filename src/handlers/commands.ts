@@ -13,36 +13,44 @@ export const setupCommandHandlers = (
 
     const userId = command.user_id
 
-    // Get user preferences from PocketBase
-    const userPrefs = preferences[userId] || (await getUserPreferences(userId)) || []
+    try {
+      // Get user preferences from PocketBase
+      const userPrefs = preferences[userId] || (await getUserPreferences(userId)) || []
 
-    // Get the blocks for tech categories, passing existing preferences
-    const blocks = generateTechCategoryBlocks(userPrefs)
+      // Get the blocks for tech categories, passing existing preferences
+      const blocks = await generateTechCategoryBlocks(userPrefs)
 
-    // Add header block to explain the command
-    blocks.unshift(
-      {
-        type: 'header',
-        text: {
-          type: 'plain_text',
-          text: 'Tech Preferences',
+      // Add header block to explain the command
+      blocks.unshift(
+        {
+          type: 'header',
+          text: {
+            type: 'plain_text',
+            text: 'Tech Preferences',
+          },
         },
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: 'Select your tech preferences by clicking the buttons below. Your selections are automatically saved when you click a button. These preferences will help us match you with other devs with similar interests.',
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: 'Select your tech preferences by clicking the buttons below. Your selections are automatically saved when you click a button. These preferences will help us match you with other devs with similar interests.',
+          },
         },
-      },
-    )
+      )
 
-    // Send ephemeral message (only visible to the user who triggered the command)
-    await respond({
-      response_type: 'ephemeral',
-      blocks,
-      text: 'Select your tech preferences',
-    })
+      // Send ephemeral message (only visible to the user who triggered the command)
+      await respond({
+        response_type: 'ephemeral',
+        blocks,
+        text: 'Select your tech preferences',
+      })
+    } catch (error) {
+      console.error('Error in /definetech command:', error)
+      await respond({
+        response_type: 'ephemeral',
+        text: 'Sorry, there was an error processing your request. Please try again later.',
+      })
+    }
   })
 
   app.command('/matchdev', async ({command, ack, respond, client}: any) => {
