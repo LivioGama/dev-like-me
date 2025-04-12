@@ -45,3 +45,5 @@ sentry.properties
 .pnpm-debug.log
 dist/
 *.iml
+pocketbase/pb_data/
+global_rules.md

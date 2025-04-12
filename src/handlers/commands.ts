@@ -1,103 +1,157 @@
-import {App} from '@slack/bolt'
+import { WebClient } from '@slack/web-api'
+import { isEmpty } from 'lodash'
+import { getAllUserPreferences, getUserPreferences } from '../utils/database'
+import { generateTechCategoryBlocks } from '../utils/techCategoriesUtil'
 
-// In-memory user preferences storage
-const userPreferences: Record<string, string[]> = {}
-
-export const registerCommands = (app: App, preferences: Record<string, string[]>) => {
-  // Register /techprefs command
-  app.command('/techprefs', async ({ack, body, context}) => {
+export const setupCommandHandlers = (
+  app: any,
+  preferences: Record<string, string[]>,
+  client: WebClient,
+) => {
+  app.command('/definetech', async ({command, ack, respond}: any) => {
     await ack()
-    // Open a modal for tech preferences
-    await app.client.views.open({
-      token: context.botToken,
-      trigger_id: body.trigger_id,
-      view: {
-        type: 'modal',
-        callback_id: 'techprefs_modal',
-        title: {
+
+    const userId = command.user_id
+
+    // Get user preferences from PocketBase
+    const userPrefs = preferences[userId] || (await getUserPreferences(userId)) || []
+
+    // Get the blocks for tech categories, passing existing preferences
+    const blocks = generateTechCategoryBlocks(userPrefs)
+
+    // Add header block to explain the command
+    blocks.unshift(
+      {
+        type: 'header',
+        text: {
           type: 'plain_text',
           text: 'Tech Preferences',
         },
-        blocks: [
-          {
-            type: 'input',
-            block_id: 'techprefs_input',
-            label: {
-              type: 'plain_text',
-              text: 'Enter your tech preferences (comma-separated)',
-            },
-            element: {
-              type: 'plain_text_input',
-              multiline: true,
-            },
-          },
-          {
-            type: 'actions',
-            block_id: 'techprefs_actions',
-            elements: [
-              {
-                type: 'button',
-                action_id: 'save_preferences',
-                text: {
-                  type: 'plain_text',
-                  text: 'Save',
-                },
-              },
-              {
-                type: 'button',
-                action_id: 'cancel',
-                text: {
-                  type: 'plain_text',
-                  text: 'Cancel',
-                },
-              },
-            ],
-          },
-        ],
       },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: 'Select your tech preferences by clicking the buttons below. Your selections are automatically saved when you click a button. These preferences will help us match you with other devs with similar interests.',
+        },
+      },
+    )
+
+    // Send ephemeral message (only visible to the user who triggered the command)
+    await respond({
+      response_type: 'ephemeral',
+      blocks,
+      text: 'Select your tech preferences',
     })
   })
 
-  // Handle modal submission
-  app.view('techprefs_modal', async ({ack, body, view}) => {
+  app.command('/matchdev', async ({command, ack, respond, client}: any) => {
     await ack()
-    const userId = body.user.id
-    const preferencesInput = view.state.values.techprefs_input
-    const preferencesArray = preferencesInput.techprefs_input.value
-      .split(',')
-      .map(item => item.trim())
-    preferences[userId] = preferencesArray
-    console.log(`User ${userId} preferences saved:`, preferencesArray)
-  })
 
-  // Handle modal actions
-  app.action('save_preferences', async ({ack, body, context}) => {
-    await ack()
-    const userId = body.user.id
-    const preferencesInput = context.views.state.values.techprefs_input
-    const preferencesArray = preferencesInput.techprefs_input.value
-      .split(',')
-      .map(item => item.trim())
-    preferences[userId] = preferencesArray
-    console.log(`User ${userId} preferences saved:`, preferencesArray)
-  })
+    const userId = command.user_id
 
-  app.action('cancel', async ({ack, body}) => {
-    await ack()
-    console.log(`User ${body.user.id} cancelled preferences modal`)
-  })
+    // Get user preferences from PocketBase
+    const userPrefs = preferences[userId] || (await getUserPreferences(userId)) || []
 
-  // Register /finddevs command
-  app.command('/finddevs', async ({ack, body, context}) => {
-    await ack()
-    const userId = body.user_id
-    const userPrefs = preferences[userId] || []
-    const similarUsers = Object.entries(preferences)
-      .filter(([id, prefs]) => id !== userId && prefs.some(pref => userPrefs.includes(pref)))
-      .map(([id]) => id)
-    await app.client.chat.postMessage({
-      channel: body.channel_id,
-      text: `Users with similar preferences: ${similarUsers.join(', ') || 'none'}`,
+    if (isEmpty(userPrefs)) {
+      await client.chat.postMessage({
+        channel: command.channel_id,
+        text: `You don't have any preferences set. Use /definetech to set your preferences first.`,
+      })
+      return
+    }
+
+    // Get latest preferences for all users
+    const allPreferences = await getAllUserPreferences()
+
+    // Find users with matching preferences and calculate intersection
+    const usersWithMatches = await Promise.all(
+      Object.entries(allPreferences)
+        .filter(([id]) => id !== userId && !isEmpty(allPreferences[id]))
+        .map(async ([id, prefs]) => {
+          // Find matching preferences
+          const matchingPrefs = prefs.filter(pref => userPrefs.includes(pref))
+
+          if (isEmpty(matchingPrefs)) return null
+
+          // Get user info to display name instead of ID
+          const userInfo = await client.users.info({user: id})
+          const username = userInfo.user?.real_name || userInfo.user?.name || id
+
+          // Calculate match percentage based on user's preferences
+          const matchPercentage = Math.round((matchingPrefs.length / userPrefs.length) * 100)
+
+          return {
+            username,
+            matchingPrefs,
+            matchPercentage,
+          }
+        }),
+    )
+
+    // Filter out null results and sort by match percentage
+    const validMatches = usersWithMatches
+      .filter(Boolean)
+      .sort((a, b) => b.matchPercentage - a.matchPercentage)
+
+    if (isEmpty(validMatches)) {
+      await client.chat.postMessage({
+        channel: command.channel_id,
+        text: `No users found with similar tech preferences. Encourage your teammates to use /definetech!`,
+      })
+      return
+    }
+
+    // Format the output message with single backquotes around preferences
+    const matchesText = validMatches
+      .map(
+        match =>
+          `*${match.username}* (${match.matchPercentage}% match): ${match.matchingPrefs.map(pref => `\`${pref}\``).join(', ')}`,
+      )
+      .join('\n')
+
+    // Find top matches for the summary
+    const topMatches = validMatches.slice(0, 3)
+    const topMatchesNames = topMatches.map(m => m.username).join(', ')
+
+    await client.chat.postMessage({
+      channel: command.channel_id,
+      blocks: [
+        {
+          type: 'header',
+          text: {
+            type: 'plain_text',
+            text: '👩‍💻 Found Your Tech Matches! 👨‍💻',
+          },
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `Found *${validMatches.length}* ${validMatches.length === 1 ? 'dev' : 'devs'} with matching tech preferences. Top matches: ${topMatchesNames}`,
+          },
+        },
+        {
+          type: 'divider',
+        },
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: matchesText,
+          },
+        },
+        {
+          type: 'context',
+          elements: [
+            {
+              type: 'mrkdwn',
+              text: `_Percentages based on how many of your ${userPrefs.length} preferences match_`,
+            },
+          ],
+        },
+      ],
+      text: `Found ${validMatches.length} devs with matching tech preferences`,
     })
   })
 }
