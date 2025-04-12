@@ -1,0 +1,28 @@
+{
+  "name": "dev-like-me",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "bun --watch src/app.ts",
+    "start": "bun src/app.ts"
+  },
+  "author": "Livio Gamassia",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@slack/bolt": "^4.2.1",
+    "dotenv": "^16.5.0",
+    "lodash": "^4.17.21"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.202",
+    "@types/node": "^22.14.1",
+    "eslint-config-next": "^15.3.0",
+    "eslint-plugin-prefer-arrow-functions": "^3.6.2",
+    "eslint-plugin-react": "^7.37.5",
+    "nodemon": "^3.1.9",
+    "prettier": "^3.5.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3"
+  }
+}
