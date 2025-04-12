@@ -41,7 +41,7 @@ migrate((app) => {
         "options": {}
       }
     ],
-    "id": "tech_categories",
+    "id": "pbc_123",
     "indexes": [],
     "listRule": "",
     "name": "tech_categories",
@@ -53,7 +53,7 @@ migrate((app) => {
 
   return app.save(collection);
 }, (app) => {
-  const collection = app.findCollectionByNameOrId("tech_categories");
+  const collection = app.findCollectionByNameOrId("pbc_123");
 
   return app.delete(collection);
 })

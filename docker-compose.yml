@@ -1,0 +1,38 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3100"  # Map 3000 to the Slack app port
+      - "3001:3101"  # Map 3001 to the static file server port
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_PORT=3100
+      - STATIC_PORT=3101
+      - POCKETBASE_URL=http://pocketbase:8080
+      - PB_EMAIL=${PB_EMAIL}
+      - PB_PASSWORD=${PB_PASSWORD}
+    volumes:
+      - ./data:/app/data  # Persist database data if any
+    depends_on:
+      - pocketbase
+
+  pocketbase:
+    build:
+      context: ./pocketbase
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    volumes:
+      - ./pocketbase/pb_migrations:/pb/pb_migrations
+      - ./pocketbase/pb_hooks:/pb/pb_hooks
+    environment:
+      - GOMEMLIMIT=512MiB
+
+volumes:
+  pb_data:
