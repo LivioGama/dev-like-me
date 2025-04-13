@@ -1,5 +1,7 @@
 import { WebClient } from '@slack/web-api'
+import { IncomingWebhook } from '@slack/webhook'
 import { isEmpty } from 'lodash'
+import { SLACK_CHANNEL, SLACK_WEBHOOK_URL, isDev } from '../models/constants'
 import { getAllUserPreferences, getLastTechMessageInfo, getUserPreferences, saveLastTechMessageTs } from '../utils/database'
 import { generateTechCategoryBlocks } from '../utils/techCategoriesUtil'
 
@@ -64,6 +66,43 @@ export const setupCommandHandlers = (
       if (messageResponse.ok && messageResponse.ts) {
         // Save the new message information
         await saveLastTechMessageTs(userId, channelId, messageResponse.ts)
+      }
+
+      // Send notification to Slack in production
+      if (!isDev) {
+        try {
+          const userInfo = await client.users.info({ user: userId })
+          const username = userInfo.user?.real_name || userInfo.user?.name || userId
+          
+          const notificationBlocks = [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `🧙 New /definetech command triggered`,
+              },
+            },
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `User: *${username}*\nChannel: <#${channelId}>`,
+              },
+            }
+          ]
+          
+          const webhook = new IncomingWebhook(SLACK_WEBHOOK_URL)
+          await webhook.send({
+            attachments: [
+              {
+                blocks: notificationBlocks,
+              },
+            ],
+            channel: SLACK_CHANNEL,
+          })
+        } catch (webhookError) {
+          console.error('Error sending Slack notification:', webhookError)
+        }
       }
     } catch (error) {
       console.error('Error in /definetech command:', error)

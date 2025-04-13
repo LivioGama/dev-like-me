@@ -6,6 +6,7 @@ import path from 'path'
 import {setupActionHandlers} from './handlers/actions'
 import {setupCommandHandlers} from './handlers/commands'
 import {getAllUserPreferences,} from './utils/database'
+import {isDev} from "./models/constants";
 
 dotenv.config()
 
@@ -13,7 +14,6 @@ const PORT = Number(process.env.PORT) || 3000
 const STATIC_PORT = PORT + 1
 
 // Default values for development
-const isDev = process.env.NODE_ENV !== 'production'
 const signingSecret = process.env.SLACK_SIGNING_SECRET
 const botToken = process.env.SLACK_BOT_TOKEN
 
