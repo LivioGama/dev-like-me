@@ -1,0 +1,54 @@
+{
+  "display_information": {
+    "name": "DevLikeMe",
+    "description": "Match developers based on their tech interests and preferences",
+    "background_color": "#4A154B"
+  },
+  "features": {
+    "bot_user": {
+      "display_name": "DevLikeMe",
+      "always_online": true
+    },
+    "slash_commands": [
+      {
+        "command": "/definetech",
+        "description": "Define your tech preferences",
+        "usage_hint": "Just type /definetech to get started",
+        "should_escape": false,
+        "url": "https://devlikeme-slack.liviogama.com/slack/events"
+      },
+      {
+        "command": "/matchdev",
+        "description": "Find developers with similar tech interests",
+        "usage_hint": "Just type /matchdev to find matches",
+        "should_escape": false,
+        "url": "https://devlikeme-slack.liviogama.com/slack/events"
+      }
+    ]
+  },
+  "oauth_config": {
+    "redirect_urls": [
+      "https://devlikeme-slack.liviogama.com/slack/oauth_redirect"
+    ],
+    "scopes": {
+      "bot": [
+        "commands",
+        "chat:write",
+        "users:read",
+        "im:write",
+        "im:history",
+        "im:read",
+        "groups:history"
+      ]
+    }
+  },
+  "settings": {
+    "interactivity": {
+      "is_enabled": true,
+      "request_url": "https://devlikeme-slack.liviogama.com/slack/events"
+    },
+    "org_deploy_enabled": false,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": false
+  }
+} 
