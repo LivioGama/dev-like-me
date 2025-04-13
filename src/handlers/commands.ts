@@ -107,8 +107,9 @@ export const setupCommandHandlers = (
           const userInfo = await client.users.info({user: id})
           const username = userInfo.user?.real_name || userInfo.user?.name || id
 
-          // Calculate match percentage based on user's preferences
-          const matchPercentage = Math.round((matchingPrefs.length / userPrefs.length) * 100)
+          // Calculate match percentage based on intersection size divided by the smaller set size
+          // This ensures having more techs doesn't decrease match percentage
+          const matchPercentage = Math.round((matchingPrefs.length / Math.min(userPrefs.length, prefs.length)) * 100)
 
           return {
             username,
@@ -175,7 +176,7 @@ export const setupCommandHandlers = (
           elements: [
             {
               type: 'mrkdwn',
-              text: `_Percentages based on how many of your ${userPrefs.length} preferences match_`,
+              text: `_Percentages based on shared technologies relative to smallest tech set_`,
             },
           ],
         },

@@ -1,6 +1,6 @@
-import {WebClient} from '@slack/web-api'
-import {getUserPreferences, saveLastTechMessageTs, saveUserPreferences} from '../utils/database'
-import {generateTechCategoryBlocks} from '../utils/techCategoriesUtil'
+import { WebClient } from '@slack/web-api'
+import { getUserPreferences, saveLastTechMessageTs, saveUserPreferences } from '../utils/database'
+import { generateTechCategoryBlocks } from '../utils/techCategoriesUtil'
 
 export const setupActionHandlers = (app: any, userPreferences: Record<string, string[]>, client: WebClient) => {
   // Handle tech button actions
