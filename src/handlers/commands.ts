@@ -1,6 +1,6 @@
 import { WebClient } from '@slack/web-api'
 import { isEmpty } from 'lodash'
-import { getAllUserPreferences, getUserPreferences } from '../utils/database'
+import { getAllUserPreferences, getLastTechMessageInfo, getUserPreferences, saveLastTechMessageTs } from '../utils/database'
 import { generateTechCategoryBlocks } from '../utils/techCategoriesUtil'
 
 export const setupCommandHandlers = (
@@ -12,8 +12,24 @@ export const setupCommandHandlers = (
     await ack()
 
     const userId = command.user_id
+    const channelId = command.channel_id
 
     try {
+      // Check if user has a previous tech preferences message and delete it
+      const lastMessageInfo = await getLastTechMessageInfo(userId)
+      if (lastMessageInfo.channelId && lastMessageInfo.messageTs) {
+        try {
+          await client.chat.delete({
+            channel: lastMessageInfo.channelId,
+            ts: lastMessageInfo.messageTs,
+            as_user: true
+          })
+        } catch (deleteError) {
+          // Ignore errors when deleting previous message (it might have been deleted manually)
+          console.error('Error deleting previous tech message, continuing anyway:', deleteError)
+        }
+      }
+
       // Get user preferences from PocketBase
       const userPrefs = preferences[userId] || (await getUserPreferences(userId)) || []
 
@@ -38,12 +54,17 @@ export const setupCommandHandlers = (
         },
       )
 
-      // Send ephemeral message (only visible to the user who triggered the command)
-      await respond({
-        response_type: 'ephemeral',
+      // Send message and save its ID
+      const messageResponse = await client.chat.postMessage({
+        channel: channelId,
         blocks,
-        text: 'Select your tech preferences',
+        text: 'Select your tech preferences'
       })
+
+      if (messageResponse.ok && messageResponse.ts) {
+        // Save the new message information
+        await saveLastTechMessageTs(userId, channelId, messageResponse.ts)
+      }
     } catch (error) {
       console.error('Error in /definetech command:', error)
       await respond({

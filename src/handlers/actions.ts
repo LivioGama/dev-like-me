@@ -1,5 +1,5 @@
 import { WebClient } from '@slack/web-api'
-import { getUserPreferences, saveUserPreferences } from '../utils/database'
+import { getUserPreferences, saveLastTechMessageTs, saveUserPreferences } from '../utils/database'
 import { generateTechCategoryBlocks } from '../utils/techCategoriesUtil'
 
 export const setupActionHandlers = (app: any, userPreferences: Record<string, string[]>, client: WebClient) => {
@@ -8,6 +8,8 @@ export const setupActionHandlers = (app: any, userPreferences: Record<string, st
     await ack()
     
     const userId = body.user.id
+    const messageTs = body.message.ts
+    const channelId = body.channel.id
     
     try {
       // Get current user preferences from PocketBase
@@ -55,13 +57,18 @@ export const setupActionHandlers = (app: any, userPreferences: Record<string, st
         },
       )
       
-      // Update the message with all new blocks
-      await respond({
-        response_type: 'ephemeral',
-        replace_original: true,
+      // Update the message
+      const updateResponse = await client.chat.update({
+        channel: channelId,
+        ts: messageTs,
         blocks: updatedBlocks,
         text: 'Select your tech preferences'
       })
+      
+      // Update the stored message timestamp if the message was updated
+      if (updateResponse.ok && updateResponse.ts) {
+        await saveLastTechMessageTs(userId, channelId, updateResponse.ts)
+      }
     } catch (error) {
       console.error('Error updating preferences:', error)
       await respond({
