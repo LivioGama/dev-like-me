@@ -1,44 +1,44 @@
-import { WebClient } from '@slack/web-api'
-import { getUserPreferences, saveLastTechMessageTs, saveUserPreferences } from '../utils/database'
-import { generateTechCategoryBlocks } from '../utils/techCategoriesUtil'
+import {WebClient} from '@slack/web-api'
+import {getUserPreferences, saveLastTechMessageTs, saveUserPreferences} from '../utils/database'
+import {generateTechCategoryBlocks} from '../utils/techCategoriesUtil'
 
 export const setupActionHandlers = (app: any, userPreferences: Record<string, string[]>, client: WebClient) => {
   // Handle tech button actions
-  app.action(/^tech_/, async ({ack, body, action, respond}: any) => {
+  app.action(/^action_/, async ({ack, body, action, respond}: any) => {
     await ack()
-    
+
     const userId = body.user.id
     const messageTs = body.message.ts
     const channelId = body.channel.id
-    
+
     try {
       // Get current user preferences from PocketBase
       const currentPrefs = userPreferences[userId] || await getUserPreferences(userId) || []
-      
+
       // Convert to Set for easy manipulation
       const userPrefsSet = new Set(currentPrefs)
-      
+
       const tech = (action as any).value
-      
+
       // Toggle selection
       if (userPrefsSet.has(tech)) {
         userPrefsSet.delete(tech)
       } else {
         userPrefsSet.add(tech)
       }
-      
+
       // Convert Set back to array
       const updatedPrefs = Array.from(userPrefsSet)
-      
+
       // Save to PocketBase
       await saveUserPreferences(userId, updatedPrefs)
-      
+
       // Update in-memory cache
       userPreferences[userId] = updatedPrefs
-      
+
       // Regenerate all blocks with updated selections
       const updatedBlocks = await generateTechCategoryBlocks(updatedPrefs)
-      
+
       // Add header block to re-explain the command
       updatedBlocks.unshift(
         {
@@ -56,7 +56,7 @@ export const setupActionHandlers = (app: any, userPreferences: Record<string, st
           },
         },
       )
-      
+
       // Update the message
       const updateResponse = await client.chat.update({
         channel: channelId,
@@ -64,7 +64,7 @@ export const setupActionHandlers = (app: any, userPreferences: Record<string, st
         blocks: updatedBlocks,
         text: 'Select your tech preferences'
       })
-      
+
       // Update the stored message timestamp if the message was updated
       if (updateResponse.ok && updateResponse.ts) {
         await saveLastTechMessageTs(userId, channelId, updateResponse.ts)
@@ -77,4 +77,4 @@ export const setupActionHandlers = (app: any, userPreferences: Record<string, st
       })
     }
   })
-} 
+}

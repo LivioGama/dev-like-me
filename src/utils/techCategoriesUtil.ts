@@ -81,7 +81,7 @@ export const generateTechCategoryBlocks = async (userSelections?: string[]) => {
         const isSelected = userSelections?.includes(tech.value)
         return {
           type: 'button',
-          action_id: tech.id,
+          action_id: `action_${tech.id}`,
           text: {
             type: 'plain_text',
             text: isSelected ? `✅ ${tech.value}` : tech.value,
